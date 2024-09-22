@@ -1,0 +1,26 @@
+URL = "http://eplus.jp/event_name"
+Browser = "Chrome"
+
+[[Ballots]]
+Credentials = { username = "username@email.com", password = "password" }
+
+Codes = ["aaa", "bbb"]
+Days = "Both"
+Pair = true
+Renban = 1
+Goods = false
+
+[[Ballots]]
+Credentials = { username = "b", password = "b" }
+
+Codes = ["bbb"]
+Days = "Both"
+Type = "Pair"
+Renban = "aaa"
+
+[[Ballots]]
+Credentials = { username = "b", password = "b" }
+
+Codes = ["c"]
+Days = "Both"
+Type = "Single"
