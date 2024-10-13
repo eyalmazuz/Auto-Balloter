@@ -18,16 +18,10 @@ driver = None
 
 def get_driver(browser: str) -> Union[webdriver.Firefox, webdriver.Chrome]:
     if browser.lower() == "firefox":
-        options = webdriver.FirefoxOptions()
-        options.accept_insecure_certs = True
-        options.page_load_strategy = "normal"
-
-        driver = webdriver.Firefox(options=options)
-        driver.set_page_load_timeout(30)  # Increase the page load timeout to 30 seconds
+        driver = webdriver.Firefox()
 
     elif browser.lower() == "chrome":
         driver = uc.Chrome()
-        # driver = webdriver.Chrome()
 
     else:
         raise ValueError("Unsupported browser was selected")
@@ -146,7 +140,9 @@ def login(driver: WebDriver, username: str, password: str) -> None:
     login_button.click()
 
 
-def ballot_with_goods(driver: WebDriver, with_goods: bool, is_pair: bool) -> None:
+def ballot_with_goods(
+    driver: WebDriver, with_goods: bool = False, is_pair: bool = False
+) -> None:
     if with_goods:
         box_text = "グッズ付き　-----"
     else:
@@ -161,7 +157,7 @@ def ballot_with_goods(driver: WebDriver, with_goods: bool, is_pair: bool) -> Non
     ticket_select.select_by_index(is_pair + 1)
 
 
-def ballot_without_goods(driver: WebDriver, is_pair: bool) -> None:
+def ballot_without_goods(driver: WebDriver, is_pair: bool = False) -> None:
     ticket_option = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//tr/td[3]//select[option[text()='選択して下さい']]")
@@ -232,7 +228,9 @@ def has_goods_ballot(driver: WebDriver) -> bool:
 
 
 def fill_goods_info(
-    driver: WebDriver, with_goods: bool, shipping_info: Optional[List[str]] = None
+    driver: WebDriver,
+    with_goods: bool = False,
+    shipping_info: Optional[List[str]] = None,
 ) -> None:
     body = driver.find_element(
         By.XPATH, "//div[@class='enq-info']//div[@class='cont-block']"
@@ -277,9 +275,14 @@ def fill_renban_info(driver: WebDriver, renban_id: int) -> None:
     select_renban.select_by_index(renban_id)
 
 
-def start_single_ballot_process(driver: WebDriver, entry_url: str, **kwargs) -> None:
-    available_codes = kwargs["Codes"]
-    day = kwargs["Days"]
+def start_single_ballot_process(
+    driver: WebDriver, entry_url: str, **ballot_info
+) -> None:
+    available_codes = ballot_info["Codes"]
+    day = ballot_info["Days"]
+    pair = ballot_info.get("Pair", False)
+    goods = ballot_info.get("Goods", False)
+    shipping_info = ballot_info.get("Shipping Info", None)
     while available_codes:
         code = available_codes.pop()
         print(f"Applying with code: {code}")
@@ -287,21 +290,21 @@ def start_single_ballot_process(driver: WebDriver, entry_url: str, **kwargs) -> 
         for ballot_day in ["Day 1", "Day 2"]:
             if day == ballot_day or day == "Both":
                 driver.get(entry_url)
-                apply_for_single_day(driver, ballot_day, code, **kwargs)
+                apply_for_single_day(driver, ballot_day, code, **ballot_info)
 
                 login(
                     driver,
-                    kwargs["Credentials"]["username"],
-                    kwargs["Credentials"]["password"],
+                    ballot_info["Credentials"]["username"],
+                    ballot_info["Credentials"]["password"],
                 )
 
-                fill_ballot_info(driver, kwargs["Goods"], kwargs["Pair"])
+                fill_ballot_info(driver, goods, pair)
                 fill_payment_info(driver)
-                if kwargs["Pair"]:
-                    fill_renban_info(driver, kwargs["Renban"])
+                if pair:
+                    fill_renban_info(driver, ballot_info["Renban"])
 
                 if has_goods_ballot(driver):
-                    fill_goods_info(driver, kwargs["Goods"], None)
+                    fill_goods_info(driver, goods, shipping_info)
 
                 red_attention = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(
@@ -312,19 +315,19 @@ def start_single_ballot_process(driver: WebDriver, entry_url: str, **kwargs) -> 
                     )
                 )
 
-                # red_attention.find_element(
-                #     By.XPATH, "//input[@type='checkbox']"
-                # ).click()
-                #
-                # submit_button = WebDriverWait(driver, 10).until(
-                #     EC.element_to_be_clickable(
-                #         (
-                #             By.XPATH,
-                #             "//span[id='apply-button-area']//*/a[text()='同意して申込み']",
-                #         )
-                #     )
-                # )
-                # submit_button.click()
+                red_attention.find_element(
+                    By.XPATH, "//input[@type='checkbox']"
+                ).click()
+
+                submit_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable(
+                        (
+                            By.XPATH,
+                            "//span[id='apply-button-area']//*/a[text()='同意して申込み']",
+                        )
+                    )
+                )
+                submit_button.click()
 
 
 def main() -> None:
@@ -337,7 +340,7 @@ def main() -> None:
     for ballot_info in config["Ballots"]:
         start_single_ballot_process(driver, config["URL"], **ballot_info)
 
-    # driver.close()
+    driver.close()
 
 
 if __name__ == "__main__":
