@@ -159,10 +159,9 @@ def ballot_with_goods(
 
 def ballot_without_goods(driver: WebDriver, is_pair: bool = False) -> None:
     ticket_option = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, "//tr/td[3]//select[option[text()='選択して下さい']]")
-        )
+        EC.element_to_be_clickable((By.XPATH, "//tr/td[3]//select"))
     )
+
     ticket_select = Select(ticket_option)
     ticket_select.select_by_index(is_pair + 1)
 
