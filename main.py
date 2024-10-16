@@ -1,6 +1,6 @@
 import time
 import tomllib
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,46 +14,22 @@ from selenium.webdriver.support.ui import Select
 import undetected_chromedriver as uc
 
 
-def get_day_element(driver: WebDriver, day: str) -> WebElement:
-    """Used for events with Day 1/Day 2.
-
-    Eventually we want to generalize so we don't have to hardcode "Day.1" etc.
-    Index by session number on the page?"""
-    if day == "Day 1":
-        elem = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "＜Day.1＞お申込み"))
+def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
+    elem = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable(
+            (By.LINK_TEXT, "＜{0}＞お申込み".format(session_name))
         )
+    )
 
-    elif day == "Day 2":
-        elem = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "＜Day.2＞お申込み"))
-        )
-    return elem
-
-
-def get_session_element(driver: WebDriver, session: str) -> WebElement:
-    """Used for events with Day/Night sessions."""
-    if session == "昼公演":
-        elem = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "＜昼公演＞お申込み"))
-        )
-
-    elif session == "夜公演":
-        elem = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "＜夜公演＞お申込み"))
-        )
     return elem
 
 
 def apply_for_single_session(
-    driver: WebDriver, session: str, code: str, **ballot_info
+    driver: WebDriver, session_name: str, code: str, **ballot_info
 ) -> None:
     # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
-    if "Day." in session:
-        session_button = get_day_element(driver, session)
-    else:
-        session_button = get_session_element(driver, session)
-    print(f"Applying to {session}")
+    session_button = get_session_element(driver, session_name)
+    print(f"Applying to {session_name}")
     session_button.click()
     WebDriverWait(driver, 10).until(
         EC.all_of(
@@ -93,7 +69,9 @@ def apply_for_single_session(
     apply_button.click()
 
     checkbox = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//label[text()='各種注意事項に同意します']"))
+        EC.element_to_be_clickable(
+            (By.XPATH, "//label[text()='各種注意事項に同意します']")
+        )
     )
     checkbox.click()
 
@@ -283,16 +261,18 @@ def fill_renban_info(driver: WebDriver, renban: Union[Dict[str, str], int]) -> N
 
     select_renban = Select(renban_form)
     if isinstance(renban, int):
-        select_renban.select_by_index(renban_id)
+        select_renban.select_by_index(renban)
     elif isinstance(renban, dict) and len(renban) == 2:
-        renban_name = f"{name}（{address}）".format(name=renban["name"], address=renban["address"])
+        renban_name = f"{name}（{address}）".format(
+            name=renban["name"], address=renban["address"]
+        )
         for option in select_renban.options:
             if option.text == renban_name:
                 option.click()
-
     else:
-        raise ValueError("Renban value is invalid, please either specify a number or a dictionary of two elements with name and address")
-
+        raise ValueError(
+            "Renban value is invalid, please either specify a number or a dictionary of two elements with name and address"
+        )
 
 
 def start_single_ballot_process(
@@ -305,20 +285,24 @@ def start_single_ballot_process(
     elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
         sessions_to_apply_to = set([sessions_to_apply_to])
 
-    pair = ballot_info.get("Pair", False)
+    pair = "Renban" in ballot_info
     want_goods = ballot_info.get("WantGoods", False)
     shipping_info = ballot_info.get("Shipping Info", None)
+
+    driver.get(entry_url)
+    sessions = driver.find_elements(By.XPATH, "//div[@class='page-content']//a")
+    sessions_name = {session.text[1:-5] for session in sessions}
+    # Slicing is a bit of bandaid solution since right now
+    # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
 
     while available_codes:
         code = available_codes.pop()
         print(f"Applying with code: {code}")
 
-        # TODO: Get the list of sessions from the entry_url and then iterate
-        # over those
-        for session in ["昼公演", "夜公演"]:
+        for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session in sessions_to_apply_to:
                 driver.get(entry_url)
-                apply_for_single_session(driver, session, code, **ballot_info)
+                apply_for_single_session(driver, session_name, code, **ballot_info)
 
                 login(
                     driver,
