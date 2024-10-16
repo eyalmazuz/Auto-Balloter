@@ -15,7 +15,6 @@ import undetected_chromedriver as uc
 
 driver = None
 
-
 def get_driver(browser: str) -> Union[webdriver.Firefox, webdriver.Chrome]:
     if browser.lower() == "firefox":
         driver = webdriver.Firefox()
@@ -263,7 +262,7 @@ def fill_goods_info(
                 inp.send_keys(shipping_info[idx - 2])
 
 
-def fill_renban_info(driver: WebDriver, renban_id: int) -> None:
+def fill_renban_info(driver: WebDriver, renban: Union[Dict[str, str], int]) -> None:
     renban_form = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//tr/td[2]//select[option[text()='同行者1を選択してください']]")
@@ -271,7 +270,17 @@ def fill_renban_info(driver: WebDriver, renban_id: int) -> None:
     )
 
     select_renban = Select(renban_form)
-    select_renban.select_by_index(renban_id)
+    if isinstance(renban, int):
+        select_renban.select_by_index(renban_id)
+    elif isinstance(renban, dict) and len(renban) == 2:
+        renban_name = f"{name}（{address}）".format(name=renban["name"], address=renban["address"])
+        for option in select_renban.options:
+            if option.text == renban_name:
+                option.click()
+
+    else:
+        raise ValueError("Renban value is invalid, please either specify a number or a dictionary of two elements with name and address")
+
 
 
 def start_single_ballot_process(
