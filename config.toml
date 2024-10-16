@@ -1,16 +1,23 @@
 URL = "http://eplus.jp/event_name"
+# The entry page for the event you apply to
+# This is currently working only for love live serial events
 
 [[Ballots]]
 Credentials = { username = "username@email.com", password = "password" }
+# The login info for your eplus account
 
 Codes = ["aaa", "bbb"]
+# All the codes you want to apply for this specific account
+
+Sessions = "All"
 # You can specify a list or you can just write "All" if you want to apply for all sessions.
+# Supported options are: "昼公演", "夜公演", "Day.1", "Day.2", and "All"
 # Examples:
 # Sessions = ["昼公演"]
 # Sessions = ["昼公演", "夜公演"]
 # Sessions = "All"
-Sessions = "All"
-Pair = true
+
+Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
 # If your renban list is A, B, C, ..., the value you should pick is:
 # A -> 1
 # B -> 2
@@ -18,23 +25,9 @@ Pair = true
 # ...
 # You can also find this as the "No" of the person on
 # https://member.eplus.jp/update-dokosha
-Renban = 1
-# If there are goods, do you want to apply for them?
+# You can also specify the renban by his name and address as a mapping as seen above
+# copy the "同行者名" without any spaces into the "name" field
+# and "メールアドレス" to the address key
+
 WantGoods = false
-
-[[Ballots]]
-Credentials = { username = "b", password = "b" }
-
-Codes = ["bbb"]
-Sessions = "昼公演"
-Type = "Pair"
-# TODO: Selecting by name doesn't actually work but we could try implementing it
-# Renban = "aaa"
-Renban = 2
-
-[[Ballots]]
-Credentials = { username = "b", password = "b" }
-
-Codes = ["c"]
-Sessions = "All"
-Type = "Single"
+# If there are goods, do you want to apply for them?
