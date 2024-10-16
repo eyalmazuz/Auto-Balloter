@@ -13,22 +13,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import undetected_chromedriver as uc
 
-driver = None
-
-def get_driver(browser: str) -> Union[webdriver.Firefox, webdriver.Chrome]:
-    if browser.lower() == "firefox":
-        driver = webdriver.Firefox()
-
-    elif browser.lower() == "chrome":
-        driver = uc.Chrome()
-
-    else:
-        raise ValueError("Unsupported browser was selected")
-
-    return driver
-
-
 def get_day_element(driver: WebDriver, day: str) -> WebElement:
+    """Used for events with Day 1/Day 2.
+
+    Eventually we want to generalize so we don't have to hardcode "Day.1" etc.
+    Index by session number on the page?"""
     if day == "Day 1":
         elem = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.LINK_TEXT, "＜Day.1＞お申込み"))
@@ -41,12 +30,30 @@ def get_day_element(driver: WebDriver, day: str) -> WebElement:
     return elem
 
 
-def apply_for_single_day(
-    driver: WebDriver, ballot_day: str, code: str, **kwargs
+def get_session_element(driver: WebDriver, session: str) -> WebElement:
+    """Used for events with Day/Night sessions."""
+    if session == "昼公演":
+        elem = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.LINK_TEXT, "＜昼公演＞お申込み"))
+        )
+
+    elif session == "夜公演":
+        elem = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.LINK_TEXT, "＜夜公演＞お申込み"))
+        )
+    return elem
+
+
+def apply_for_single_session(
+    driver: WebDriver, session: str, code: str, **ballot_info
 ) -> None:
-    day = get_day_element(driver, ballot_day)
-    print(f"Applying to {ballot_day}")
-    day.click()
+    # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
+    if "Day." in session:
+        session_button = get_day_element(driver, session)
+    else:
+        session_button = get_session_element(driver, session)
+    print(f"Applying to {session}")
+    session_button.click()
     WebDriverWait(driver, 10).until(
         EC.all_of(
             EC.presence_of_element_located(
@@ -85,9 +92,7 @@ def apply_for_single_day(
     apply_button.click()
 
     checkbox = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, "//label[text()='各種注意事項に同意します']")
-        )
+        EC.element_to_be_clickable((By.XPATH, "//label[text()='各種注意事項に同意します']"))
     )
     checkbox.click()
 
@@ -174,7 +179,10 @@ def get_number_of_selects(driver: WebDriver) -> int:
     return len(select_elements)
 
 
-def fill_ballot_info(driver: WebDriver, with_goods: bool, is_pair: bool) -> None:
+def fill_ballot_info(driver: WebDriver, with_goods: bool, is_pair: bool) -> bool:
+    """Fills in the options on the first page after you log in.
+
+    Returns a boolean describing whether you can apply with goods or not."""
     day_option = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//tr/td[2]//select[option[text()='選択して下さい']]")
@@ -184,8 +192,9 @@ def fill_ballot_info(driver: WebDriver, with_goods: bool, is_pair: bool) -> None
     day_select.select_by_index(1)
 
     num_selects = get_number_of_selects(driver)
+    can_apply_with_goods = num_selects == 2
 
-    if num_selects == 2:
+    if can_apply_with_goods:
         ballot_with_goods(driver, with_goods, is_pair)
     else:
         ballot_without_goods(driver, is_pair)
@@ -196,6 +205,8 @@ def fill_ballot_info(driver: WebDriver, with_goods: bool, is_pair: bool) -> None
         )
     )
     submit_button.click()
+
+    return can_apply_with_goods
 
 
 def fill_payment_info(driver: WebDriver) -> None:
@@ -287,18 +298,26 @@ def start_single_ballot_process(
     driver: WebDriver, entry_url: str, **ballot_info
 ) -> None:
     available_codes = ballot_info["Codes"]
-    day = ballot_info["Days"]
+    sessions_to_apply_to = ballot_info["Sessions"]
+    if isinstance(sessions_to_apply_to, list):
+        sessions_to_apply_to = set(ballot_info["Sessions"])
+    elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
+        sessions_to_apply_to = set([sessions_to_apply_to])
+
     pair = ballot_info.get("Pair", False)
-    goods = ballot_info.get("Goods", False)
+    want_goods = ballot_info.get("WantGoods", False)
     shipping_info = ballot_info.get("Shipping Info", None)
+
     while available_codes:
         code = available_codes.pop()
         print(f"Applying with code: {code}")
 
-        for ballot_day in ["Day 1", "Day 2"]:
-            if day == ballot_day or day == "Both":
+        # TODO: Get the list of sessions from the entry_url and then iterate
+        # over those
+        for session in ["昼公演", "夜公演"]:
+            if sessions_to_apply_to == "All" or session in sessions_to_apply_to:
                 driver.get(entry_url)
-                apply_for_single_day(driver, ballot_day, code, **ballot_info)
+                apply_for_single_session(driver, session, code, **ballot_info)
 
                 login(
                     driver,
@@ -306,32 +325,28 @@ def start_single_ballot_process(
                     ballot_info["Credentials"]["password"],
                 )
 
-                fill_ballot_info(driver, goods, pair)
+                can_apply_with_goods = fill_ballot_info(driver, want_goods, pair)
                 fill_payment_info(driver)
                 if pair:
                     fill_renban_info(driver, ballot_info["Renban"])
+                if can_apply_with_goods and has_goods_ballot(driver):
+                    fill_goods_info(driver, want_goods, shipping_info)
 
-                if has_goods_ballot(driver):
-                    fill_goods_info(driver, goods, shipping_info)
-
-                red_attention = WebDriverWait(driver, 10).until(
+                confirm_checkbox = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(
                         (
                             By.XPATH,
-                            "//td[@class='checkbox-area']//label[text()='内容を確認しました']",
+                            "//td[@class='checkbox-area']//label[text()='内容を確認しました']/preceding-sibling::input[@type='checkbox']",
                         )
                     )
                 )
-
-                red_attention.find_element(
-                    By.XPATH, "//input[@type='checkbox']"
-                ).click()
+                confirm_checkbox.click()
 
                 submit_button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(
                         (
                             By.XPATH,
-                            "//span[id='apply-button-area']//*/a[text()='同意して申込み']",
+                            "//span[@id='apply-button-area']//a[text()='同意して申込み']",
                         )
                     )
                 )
@@ -342,8 +357,7 @@ def main() -> None:
     with open("config.toml", "rb") as fd:
         config = tomllib.load(fd)
 
-    global driver
-    driver = get_driver(config["Browser"])
+    driver = uc.Chrome()
 
     for ballot_info in config["Ballots"]:
         start_single_ballot_process(driver, config["URL"], **ballot_info)
