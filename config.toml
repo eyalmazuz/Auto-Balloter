@@ -8,6 +8,7 @@ Credentials = { username = "username@email.com", password = "password" }
 
 Codes = ["aaa", "bbb"]
 # All the codes you want to apply for this specific account
+# Leave empty if you want to type the codes in console each.
 
 Sessions = "All"
 # You can specify a list or you can just write "All" if you want to apply for all sessions.
