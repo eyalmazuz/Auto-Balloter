@@ -297,7 +297,7 @@ def start_single_ballot_process(
         print(f"Applying with code: {code}")
 
        for session_name in sessions_name:
-            if sessions_to_apply_to == "All" or session in sessions_to_apply_to:
+            if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
                 apply_for_single_session(driver, session_name, code, **ballot_info)
 
