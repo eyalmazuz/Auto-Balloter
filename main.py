@@ -13,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import undetected_chromedriver as uc
 
+
 def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
     elem = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
@@ -68,7 +69,9 @@ def apply_for_single_session(
     apply_button.click()
 
     checkbox = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//label[text()='各種注意事項に同意します']"))
+        EC.element_to_be_clickable(
+            (By.XPATH, "//label[text()='各種注意事項に同意します']")
+        )
     )
     checkbox.click()
 
@@ -260,9 +263,7 @@ def fill_renban_info(driver: WebDriver, renban: Union[Dict[str, str], int]) -> N
     if isinstance(renban, int):
         select_renban.select_by_index(renban)
     elif isinstance(renban, dict) and len(renban) == 2:
-        renban_name = f"{name}（{address}）".format(
-            name=renban["name"], address=renban["address"]
-        )
+        renban_name = f"{renban['name']}（{renban['address']}）"
         for option in select_renban.options:
             if option.text == renban_name:
                 option.click()
@@ -296,7 +297,7 @@ def start_single_ballot_process(
         code = available_codes.pop()
         print(f"Applying with code: {code}")
 
-       for session_name in sessions_name:
+        for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
                 apply_for_single_session(driver, session_name, code, **ballot_info)
