@@ -1,6 +1,15 @@
 # Auto-Balloter
 This is a software to ease applying to Japanese events on the website [eplus](https://eplus.jp)
 
+## Disclaimer
+
+THIS SOFTWARE IS PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND AND
+IS TO BE USED AT YOUR OWN RISK. BY USING THIS SOFTWARE, YOU AGREE THAT
+THE AUTHORS OR CONTRIBUTORS ARE NOT LIABLE FOR ANY DAMAGES OR CLAIMS OR ANYTHING AT ALL
+ARISING FROM ITS USE. NO GUARANTEE OF SUPPORT OR UPDATES IS PROVIDED.
+
+[Full License Here](./LICENSE)
+
 
 # Features
 - [x] Multiple accounts
