@@ -2,6 +2,7 @@ import time
 import tomllib
 from typing import Dict, List, Optional, Union
 
+from Tools.scripts.mailerdaemon import emparse_list_from
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -49,6 +50,18 @@ def apply_for_single_session(
     apply_button = driver.find_element(By.XPATH, "//button[text()='お申込みへ']")
     apply_button.click()
 
+    # Attempt of an exception handling method aimed to react when the code is either wrong or used.
+    time.sleep(3)
+    error_messages = driver.find_elements(By.CLASS_NAME, "varidation")
+    # print(len(error_messages))
+    if error_messages:
+        error_msg = error_messages[1].text
+        if error_msg == "利用回数を超えたためお申込みできません。":
+            print("Code " + code + " has been used for " + session_name +" before. Please check again.")
+        elif error_msg == "申し込み情報が正しくありません。":
+            print("Code " + code + " is incorrect. Please check again.")
+
+    # Waiting until the new page loads
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (
@@ -58,6 +71,7 @@ def apply_for_single_session(
         ),
     )
 
+    # Clicking Apply in first page
     apply_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (
@@ -68,6 +82,7 @@ def apply_for_single_session(
     )
     apply_button.click()
 
+    # Checking 各種注意事項に同意します on pop up
     checkbox = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//label[text()='各種注意事項に同意します']")
@@ -75,6 +90,7 @@ def apply_for_single_session(
     )
     checkbox.click()
 
+    # Clicking Apply on popup
     apply_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//button[text()='申込みへ' and @type='submit']")
@@ -297,6 +313,8 @@ def start_single_ballot_process(
         code = available_codes.pop()
         print(f"Applying with code: {code}")
 
+        # Might consider to add returning unused codes here.
+
         for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
@@ -345,7 +363,8 @@ def main() -> None:
     for ballot_info in config["Ballots"]:
         start_single_ballot_process(driver, config["URL"], **ballot_info)
 
-    driver.close()
+    #driver.close()
+    driver.quit()
 
 
 if __name__ == "__main__":
