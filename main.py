@@ -2,7 +2,6 @@ import time
 import tomllib
 from typing import Dict, List, Optional, Union
 
-from Tools.scripts.mailerdaemon import emparse_list_from
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -363,8 +362,7 @@ def main() -> None:
     for ballot_info in config["Ballots"]:
         start_single_ballot_process(driver, config["URL"], **ballot_info)
 
-    #driver.close()
-    driver.quit()
+    driver.close()
 
 
 if __name__ == "__main__":
