@@ -297,7 +297,8 @@ def start_single_ballot_process(
     elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
         sessions_to_apply_to = set([sessions_to_apply_to])
 
-    if not available_codes: available_codes = True
+    # if not available_codes: available_codes = True
+    # Decomment for single entry
 
     pair = "Renban" in ballot_info
     want_goods = ballot_info.get("WantGoods", False)
@@ -310,10 +311,12 @@ def start_single_ballot_process(
     # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
 
     while available_codes:
-        if available_codes is True:
-            code = input("Enter code:")
-        else:
-            code = available_codes.pop()
+        # if available_codes is True:
+        #     code = input("Enter code:")
+        # else:
+        #     code = available_codes.pop()
+
+        code = available_codes.pop()
 
         print(f"Applying with code: {code}")
 
