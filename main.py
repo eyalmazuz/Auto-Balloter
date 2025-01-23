@@ -56,9 +56,9 @@ def apply_for_single_session(
     if error_messages:
         error_msg = error_messages[1].text
         if error_msg == "利用回数を超えたためお申込みできません。":
-            print("Code " + code + " has been used for " + session_name +" before. Please check again.")
+            print(f"Code {code} has been used for {session_name} before. Please check again.")
         elif error_msg == "申し込み情報が正しくありません。":
-            print("Code " + code + " is incorrect. Please check again.")
+            print(f"Code {code} is incorrect. Please check again.")
 
     # Waiting until the new page loads
     WebDriverWait(driver, 10).until(
