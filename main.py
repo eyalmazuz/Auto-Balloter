@@ -59,24 +59,38 @@ def apply_for_single_session(
     apply_button = driver.find_element(By.XPATH, "//button[text()='お申込みへ']")
     apply_button.click()
 
-    time.sleep(3)
-    error_messages = driver.find_elements(By.CLASS_NAME, "varidation")
-    if error_messages:
-        error_msg = error_messages[1].text
-        if error_msg == "利用回数を超えたためお申込みできません。":
-            return Status.USED_CODE
-        elif error_msg == "申し込み情報が正しくありません。":
-            return Status.INVALID_CODE
-
-    # Waiting until the new page loads
+    # Waiting until the new page loads or an error message pops out
     WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable(
-            (
-                By.XPATH,
-                "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+        EC.any_of(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+                )
+            ),
+            EC.presence_of_element_located(
+                (
+                    By.XPATH,
+                    "//div[@name='ninsho_key_whole_error_info']/p[contains(text(),'ません')]"
+                )
             )
-        ),
+        )
     )
+
+    # Figure out if there is an error message
+    try:
+        error_message = driver.find_element(
+            By.XPATH,
+            "//div[@name='ninsho_key_whole_error_info']/p[contains(text(),'ません')]"
+        )
+        if error_message:
+            error_msg = error_message.text
+            if error_msg == "利用回数を超えたためお申込みできません。":
+                return Status.USED_CODE
+            elif error_msg == "申し込み情報が正しくありません。":
+                return Status.INVALID_CODE
+    except:
+        pass
 
     # Clicking Apply in first page
     apply_button = WebDriverWait(driver, 10).until(
