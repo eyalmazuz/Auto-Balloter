@@ -3,10 +3,10 @@ URL = "https://eplus.jp/aqours-finale-cd"
 # This is currently working only for love live serial events
 
 [[Ballots]]
-Credentials = { username = "me@reiji.io", password = "X4nrgQKigbyVnOwK" }
+Credentials = { username = "an@example.com", password = "NonakaCocona" }
 # The login info for your eplus account
 
-Codes = ["tdt793684", "bbb"]
+Codes = ["aaa", "bbb"]
 # All the codes you want to apply for this specific account
 
 Sessions = "All"
