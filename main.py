@@ -26,7 +26,7 @@ def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
 
 def apply_for_single_session(
     driver: WebDriver, session_name: str, code: str, **ballot_info
-) -> None:
+) -> bool:
     # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
     session_button = get_session_element(driver, session_name)
     print(f"Applying to {session_name}")
@@ -59,6 +59,7 @@ def apply_for_single_session(
             print(f"Code {code} has been used for {session_name} before. Please check again.")
         elif error_msg == "申し込み情報が正しくありません。":
             print(f"Code {code} is incorrect. Please check again.")
+        return False
 
     # Waiting until the new page loads
     WebDriverWait(driver, 10).until(
@@ -96,6 +97,8 @@ def apply_for_single_session(
         )
     )
     apply_button.click()
+
+    return True
 
 
 def login(driver: WebDriver, username: str, password: str) -> None:
@@ -325,7 +328,11 @@ def start_single_ballot_process(
         for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
-                apply_for_single_session(driver, session_name, code, **ballot_info)
+
+                ballot_successful = apply_for_single_session(driver, session_name, code, **ballot_info)
+
+                if not ballot_successful:
+                    continue
 
                 login(
                     driver,
