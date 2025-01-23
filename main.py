@@ -26,10 +26,10 @@ def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
 
 def apply_for_single_session(
     driver: WebDriver, session_name: str, code: str, **ballot_info
-) -> bool:
+) -> int:
     # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
     session_button = get_session_element(driver, session_name)
-    print(f"Applying to {session_name}")
+    logprint(f"Applying to {session_name}")
     session_button.click()
     WebDriverWait(driver, 10).until(
         EC.all_of(
@@ -43,7 +43,7 @@ def apply_for_single_session(
         By.XPATH, "//input[@type='text' and @placeholder='シリアルナンバー']"
     )
 
-    print("Filling code")
+    logprint("Filling code")
     serial_code_box.send_keys(code)
 
     apply_button = driver.find_element(By.XPATH, "//button[text()='お申込みへ']")
@@ -56,10 +56,11 @@ def apply_for_single_session(
     if error_messages:
         error_msg = error_messages[1].text
         if error_msg == "利用回数を超えたためお申込みできません。":
-            print(f"Code {code} has been used for {session_name} before. Please check again.")
+            logprint(f"Code {code} has been used for {session_name} before. Please check again.")
+            return 2
         elif error_msg == "申し込み情報が正しくありません。":
-            print(f"Code {code} is incorrect. Please check again.")
-        return False
+            logprint(f"Code {code} is incorrect. Please check again.")
+            return 1
 
     # Waiting until the new page loads
     WebDriverWait(driver, 10).until(
@@ -98,7 +99,7 @@ def apply_for_single_session(
     )
     apply_button.click()
 
-    return True
+    return 0
 
 
 def login(driver: WebDriver, username: str, password: str) -> None:
@@ -313,6 +314,10 @@ def start_single_ballot_process(
     # Slicing is a bit of bandaid solution since right now
     # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
 
+    # For good measure
+    successful_codes = []
+    unsuccessful_codes = {}
+
     while available_codes:
         # if available_codes is True:
         #     code = input("Enter code:")
@@ -321,7 +326,7 @@ def start_single_ballot_process(
 
         code = available_codes.pop()
 
-        print(f"Applying with code: {code}")
+        logprint(f"Applying with code: {code}")
 
         # Might consider to add returning unused codes here.
 
@@ -331,7 +336,17 @@ def start_single_ballot_process(
 
                 ballot_successful = apply_for_single_session(driver, session_name, code, **ballot_info)
 
-                if not ballot_successful:
+                if ballot_successful:
+                    if code not in unsuccessful_codes:
+                        if ballot_successful == 1:
+                            unsuccessful_codes[code] = [f"Invalid {session_name}"]
+                        elif ballot_successful == 2:
+                            unsuccessful_codes[code] = [f"Used {session_name}"]
+                    else:
+                        if ballot_successful == 1:
+                            unsuccessful_codes[code].append(f"Invalid {session_name}")
+                        elif ballot_successful == 2:
+                            unsuccessful_codes[code].append(f"Used {session_name}")
                     continue
 
                 login(
@@ -366,6 +381,21 @@ def start_single_ballot_process(
                     )
                 )
                 submit_button.click()
+                successful_codes.append(code)
+                logprint(f"---Application Successful with code {code} for {session_name}---")
+
+    # Start Final Report
+    logprint("---Process Complete---")
+    logprint(f"Successful codes: {successful_codes}")
+    logprint("Unsuccessful codes:")
+    for code, reasons in unsuccessful_codes.items():
+        logprint(f"{code}: {reasons}")
+    logprint("---End of Report---")
+
+def logprint(msg: str, file = "log.txt") -> None:
+    with open(file, "a") as fd:
+        fd.write(msg + "\n")
+    print(msg)
 
 def main() -> None:
     with open("config.toml", "rb") as fd:
