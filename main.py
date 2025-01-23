@@ -26,7 +26,7 @@ def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
 
 def apply_for_single_session(
     driver: WebDriver, session_name: str, code: str, **ballot_info
-) -> None:
+) -> bool:
     # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
     session_button = get_session_element(driver, session_name)
     print(f"Applying to {session_name}")
@@ -49,6 +49,19 @@ def apply_for_single_session(
     apply_button = driver.find_element(By.XPATH, "//button[text()='お申込みへ']")
     apply_button.click()
 
+    # Attempt of an exception handling method aimed to react when the code is either wrong or used.
+    time.sleep(3)
+    error_messages = driver.find_elements(By.CLASS_NAME, "varidation")
+    # print(len(error_messages))
+    if error_messages:
+        error_msg = error_messages[1].text
+        if error_msg == "利用回数を超えたためお申込みできません。":
+            print(f"Code {code} has been used for {session_name} before. Please check again.")
+        elif error_msg == "申し込み情報が正しくありません。":
+            print(f"Code {code} is incorrect. Please check again.")
+        return False
+
+    # Waiting until the new page loads
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (
@@ -58,6 +71,7 @@ def apply_for_single_session(
         ),
     )
 
+    # Clicking Apply in first page
     apply_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (
@@ -68,6 +82,7 @@ def apply_for_single_session(
     )
     apply_button.click()
 
+    # Checking 各種注意事項に同意します on pop up
     checkbox = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//label[text()='各種注意事項に同意します']")
@@ -75,12 +90,15 @@ def apply_for_single_session(
     )
     checkbox.click()
 
+    # Clicking Apply on popup
     apply_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//button[text()='申込みへ' and @type='submit']")
         )
     )
     apply_button.click()
+
+    return True
 
 
 def login(driver: WebDriver, username: str, password: str) -> None:
@@ -272,7 +290,6 @@ def fill_renban_info(driver: WebDriver, renban: Union[Dict[str, str], int]) -> N
             "Renban value is invalid, please either specify a number or a dictionary of two elements with name and address"
         )
 
-
 def start_single_ballot_process(
     driver: WebDriver, entry_url: str, **ballot_info
 ) -> None:
@@ -282,6 +299,9 @@ def start_single_ballot_process(
         sessions_to_apply_to = set(ballot_info["Sessions"])
     elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
         sessions_to_apply_to = set([sessions_to_apply_to])
+
+    # if not available_codes: available_codes = True
+    # Decomment for single entry
 
     pair = "Renban" in ballot_info
     want_goods = ballot_info.get("WantGoods", False)
@@ -294,13 +314,25 @@ def start_single_ballot_process(
     # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
 
     while available_codes:
+        # if available_codes is True:
+        #     code = input("Enter code:")
+        # else:
+        #     code = available_codes.pop()
+
         code = available_codes.pop()
+
         print(f"Applying with code: {code}")
+
+        # Might consider to add returning unused codes here.
 
         for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
-                apply_for_single_session(driver, session_name, code, **ballot_info)
+
+                ballot_successful = apply_for_single_session(driver, session_name, code, **ballot_info)
+
+                if not ballot_successful:
+                    continue
 
                 login(
                     driver,
@@ -335,7 +367,6 @@ def start_single_ballot_process(
                 )
                 submit_button.click()
 
-
 def main() -> None:
     with open("config.toml", "rb") as fd:
         config = tomllib.load(fd)
@@ -344,6 +375,7 @@ def main() -> None:
 
     for ballot_info in config["Ballots"]:
         start_single_ballot_process(driver, config["URL"], **ballot_info)
+
 
     driver.close()
 
