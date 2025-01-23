@@ -1,12 +1,12 @@
-URL = "http://eplus.jp/event_name"
+URL = "https://eplus.jp/aqours-finale-cd"
 # The entry page for the event you apply to
 # This is currently working only for love live serial events
 
 [[Ballots]]
-Credentials = { username = "username@email.com", password = "password" }
+Credentials = { username = "me@reiji.io", password = "X4nrgQKigbyVnOwK" }
 # The login info for your eplus account
 
-Codes = ["aaa", "bbb"]
+Codes = ["tdt793684", "bbb"]
 # All the codes you want to apply for this specific account
 
 Sessions = "All"
