@@ -1,6 +1,9 @@
 import time
 import tomllib
 from typing import Dict, List, Optional, Union
+import logging
+logger = logging.getLogger()
+from enum import Enum
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,6 +17,13 @@ from selenium.webdriver.support.ui import Select
 import undetected_chromedriver as uc
 
 
+
+
+class Status(Enum):
+    VALID_CODE = 0
+    INVALID_CODE = 1
+    USED_CODE = 2
+
 def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
     elem = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
@@ -26,10 +36,10 @@ def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
 
 def apply_for_single_session(
     driver: WebDriver, session_name: str, code: str, **ballot_info
-) -> bool:
+) -> Status:
     # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
     session_button = get_session_element(driver, session_name)
-    print(f"Applying to {session_name}")
+    logging.info(f"<Session> Applying to {session_name}")
     session_button.click()
     WebDriverWait(driver, 10).until(
         EC.all_of(
@@ -43,33 +53,44 @@ def apply_for_single_session(
         By.XPATH, "//input[@type='text' and @placeholder='シリアルナンバー']"
     )
 
-    print("Filling code")
+    logging.info("<Status> Filling code")
     serial_code_box.send_keys(code)
 
     apply_button = driver.find_element(By.XPATH, "//button[text()='お申込みへ']")
     apply_button.click()
 
-    # Attempt of an exception handling method aimed to react when the code is either wrong or used.
-    time.sleep(3)
-    error_messages = driver.find_elements(By.CLASS_NAME, "varidation")
-    # print(len(error_messages))
-    if error_messages:
-        error_msg = error_messages[1].text
-        if error_msg == "利用回数を超えたためお申込みできません。":
-            print(f"Code {code} has been used for {session_name} before. Please check again.")
-        elif error_msg == "申し込み情報が正しくありません。":
-            print(f"Code {code} is incorrect. Please check again.")
-        return False
-
-    # Waiting until the new page loads
+    # Waiting until the new page loads or an error message pops out
     WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable(
-            (
-                By.XPATH,
-                "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+        EC.any_of(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+                )
+            ),
+            EC.presence_of_element_located(
+                (
+                    By.XPATH,
+                    "//div[@name='ninsho_key_whole_error_info']/p[contains(text(),'ません')]"
+                )
             )
-        ),
+        )
     )
+
+    # Figure out if there is an error message
+    try:
+        error_message = driver.find_element(
+            By.XPATH,
+            "//div[@name='ninsho_key_whole_error_info']/p[contains(text(),'ません')]"
+        )
+        if error_message:
+            error_msg = error_message.text
+            if error_msg == "利用回数を超えたためお申込みできません。":
+                return Status.USED_CODE
+            elif error_msg == "申し込み情報が正しくありません。":
+                return Status.INVALID_CODE
+    except:
+        pass
 
     # Clicking Apply in first page
     apply_button = WebDriverWait(driver, 10).until(
@@ -98,7 +119,7 @@ def apply_for_single_session(
     )
     apply_button.click()
 
-    return True
+    return Status.VALID_CODE
 
 
 def login(driver: WebDriver, username: str, password: str) -> None:
@@ -300,9 +321,6 @@ def start_single_ballot_process(
     elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
         sessions_to_apply_to = set([sessions_to_apply_to])
 
-    # if not available_codes: available_codes = True
-    # Decomment for single entry
-
     pair = "Renban" in ballot_info
     want_goods = ballot_info.get("WantGoods", False)
     shipping_info = ballot_info.get("Shipping Info", None)
@@ -313,26 +331,31 @@ def start_single_ballot_process(
     # Slicing is a bit of bandaid solution since right now
     # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
 
+    attempted_code_status = {}
+
     while available_codes:
-        # if available_codes is True:
-        #     code = input("Enter code:")
-        # else:
-        #     code = available_codes.pop()
 
         code = available_codes.pop()
 
-        print(f"Applying with code: {code}")
+        logging.info(f"<Application Started> Code: {code}")
 
-        # Might consider to add returning unused codes here.
+        attempted_code_status[code] = []
 
         for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
 
-                ballot_successful = apply_for_single_session(driver, session_name, code, **ballot_info)
+                ballot_status = apply_for_single_session(driver, session_name, code, **ballot_info)
 
-                if not ballot_successful:
-                    continue
+                match ballot_status:
+                    case Status.INVALID_CODE:
+                        attempted_code_status[code].append(f"Invalid {session_name}")
+                        logger.info(f"<Error> Code {code} is invalid.")
+                        continue
+                    case Status.USED_CODE:
+                        attempted_code_status[code].append(f"Used {session_name}")
+                        logger.info(f"<Error> Code {code} has been used for {session_name} before.")
+                        continue
 
                 login(
                     driver,
@@ -366,16 +389,30 @@ def start_single_ballot_process(
                     )
                 )
                 submit_button.click()
+                attempted_code_status[code].append(f"Successful {session_name}")
+                logging.info(f"<Application Successful> Code {code}: {session_name}")
+
+    # Start Final Report
+    logging.info("---Process Complete---")
+    for code, status in attempted_code_status.items():
+        logging.info(f"{code}: {status}")
+    logging.info("---End of Report---")
 
 def main() -> None:
     with open("config.toml", "rb") as fd:
         config = tomllib.load(fd)
 
+    logging.basicConfig(
+        filename="apply.log",
+        level=logging.INFO,
+        format="%(asctime)s %(message)s",
+        filemode="a"
+    )
+
     driver = uc.Chrome()
 
     for ballot_info in config["Ballots"]:
         start_single_ballot_process(driver, config["URL"], **ballot_info)
-
 
     driver.close()
 
