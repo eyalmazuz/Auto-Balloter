@@ -89,7 +89,7 @@ def apply_for_single_session(
                 return Status.USED_CODE
             elif error_msg == "申し込み情報が正しくありません。":
                 return Status.INVALID_CODE
-    except:
+    except Exception:
         pass
 
     # Clicking Apply in first page
