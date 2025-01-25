@@ -29,5 +29,14 @@ Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
 # copy the "同行者名" without any spaces into the "name" field
 # and "メールアドレス" to the address key
 
-WantGoods = false
-# If there are goods, do you want to apply for them?
+ShippingInfo = [] # If you don't want goods, keep it empty aka only the: []
+# if you want goods you need to fill your information in a very specific order:
+# [Name, Phone, zip, Prefecture, City, Address 1, Address 2]
+# 1. Full Name in full-width characters
+# 2. Phone number in half-width characters
+# 3. zip code in half-width characters
+# 4. Prefecture in full-width characters
+# 5. City in full-width characters
+# 6. Address 1 in full-width characters
+# 7. Address 2 in full-width characters
+# e.g., GoodsInfo = ["ＦＯＯ　ＢＡＲ", "+815050505050", "123-0123", "ＴＯＫＹＯ", "ＡＫＩＨＡＢＡＲＡ", "ＡＤＤＲＥＳＳ　１"，　"ＡＤＤＲＥＳＳ ２"]

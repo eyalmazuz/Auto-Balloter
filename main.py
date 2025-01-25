@@ -4,7 +4,9 @@ from typing import Dict, List, Optional, Union
 import logging
 logger = logging.getLogger()
 from enum import Enum
+import unicodedata
 
+import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -14,9 +16,28 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-import undetected_chromedriver as uc
 
 
+# Thanks ChatGPT
+def half_width_to_full_width(text):
+    """
+    Convert half-width characters to full-width characters.
+    
+    Parameters:
+        text (str): The input string containing half-width characters.
+        
+    Returns:
+        str: A string with full-width characters.
+    """
+    full_width_text = ''
+    for char in text:
+        # Check if the character is half-width and convert to full-width
+        if unicodedata.east_asian_width(char) == 'Na':  # Narrow (half-width) characters
+            code_point = ord(char)
+            if 0x21 <= code_point <= 0x7E:  # ASCII printable range
+                char = chr(code_point + 0xFEE0)  # Convert to full-width
+        full_width_text += char
+    return full_width_text
 
 
 class Status(Enum):
@@ -256,7 +277,6 @@ def has_goods_ballot(driver: WebDriver) -> bool:
 
 def fill_goods_info(
     driver: WebDriver,
-    with_goods: bool = False,
     shipping_info: Optional[List[str]] = None,
 ) -> None:
     body = driver.find_element(
@@ -288,7 +308,9 @@ def fill_goods_info(
             if not shipping_info:
                 inp.send_keys("０")
             else:
-                inp.send_keys(shipping_info[idx - 2])
+                # Just making sure in-case the list doesn't contain full-width
+                full_width_info = half_width_to_full_width(shipping_info[idx - 2])
+                inp.send_keys(full_width_info)
 
 
 def fill_renban_info(driver: WebDriver, renban: Union[Dict[str, str], int]) -> None:
@@ -322,8 +344,7 @@ def start_single_ballot_process(
         sessions_to_apply_to = set([sessions_to_apply_to])
 
     pair = "Renban" in ballot_info
-    want_goods = ballot_info.get("WantGoods", False)
-    shipping_info = ballot_info.get("Shipping Info", None)
+    shipping_info = ballot_info.get("ShippingInfo", None)
 
     driver.get(entry_url)
     sessions = driver.find_elements(By.XPATH, "//div[@class='page-content']//a")
@@ -368,7 +389,7 @@ def start_single_ballot_process(
                 if pair:
                     fill_renban_info(driver, ballot_info["Renban"])
                 if can_apply_with_goods and has_goods_ballot(driver):
-                    fill_goods_info(driver, want_goods, shipping_info)
+                    fill_goods_info(driver, shipping_info)
 
                 confirm_checkbox = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(

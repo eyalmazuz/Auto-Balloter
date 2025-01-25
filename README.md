@@ -16,9 +16,9 @@ ARISING FROM ITS USE. NO GUARANTEE OF SUPPORT OR UPDATES IS PROVIDED.
 - [x] Multiple codes
 - [x] Single/renban application
 - [x] Conbini payment
+- [x] Application with goods (no support for address filling yet)
 - [ ] Credit card payment
 - [ ] Bank account payment
-- [ ] Application with goods (no support for address filling yet)
 
 # Requirements
 This code relies on chrome-based browsers to apply
@@ -26,10 +26,10 @@ so before you run the code please install [google-chrome](https://www.google.com
 
 The code also relied heavily on Selenium and undetected-chromedriver
 Please run:
+
 ```
 pip install -r requirements.txt
 ```
-
 
 # How to run
 1. Set the config file as explain below
@@ -45,12 +45,12 @@ When apply for each account, each account is separated by the ``[[Ballots]]`` he
 ### Basic config  example
 Here is an example of single account config option:
 ```
-URL = "http://eplus.jp/event_name"
+URL = "https://eplus.jp/aqours-finale-cd"
 # The entry page for the event you apply to
 # This is currently working only for love live serial events
 
 [[Ballots]]
-Credentials = { username = "username@email.com", password = "password" }
+Credentials = { username = "an@example.com", password = "NonakaCocona" }
 # The login info for your eplus account
 
 Codes = ["aaa", "bbb"]
@@ -65,6 +65,7 @@ Sessions = "All"
 # Sessions = "All"
 
 Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
+# if you want to apply allow, add the symbol: # at the beginning of the line
 # If your renban list is A, B, C, ..., the value you should pick is:
 # A -> 1
 # B -> 2
@@ -76,8 +77,17 @@ Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
 # copy the "同行者名" without any spaces into the "name" field
 # and "メールアドレス" to the address key
 
-WantGoods = false
-# If there are goods, do you want to apply for them?
+ShippingInfo = [] # If you don't want goods, keep it empty aka only the: []
+# if you want goods you need to fill your information in a very specific order:
+# [Name, Phone, zip, Prefecture, City, Address 1, Address 2]
+# 1. Full Name in full-width characters
+# 2. Phone number in half-width characters
+# 3. zip code in half-width characters
+# 4. Prefecture in full-width characters
+# 5. City in full-width characters
+# 6. Address 1 in full-width characters
+# 7. Address 2 in full-width characters
+# e.g., GoodsInfo = ["ＦＯＯ　ＢＡＲ", "+815050505050", "123-0123", "ＴＯＫＹＯ", "ＡＫＩＨＡＢＡＲＡ", "ＡＤＤＲＥＳＳ　１"，　"ＡＤＤＲＥＳＳ ２"]
 ```
 
 ### Multiple account example
@@ -97,7 +107,7 @@ Sessions = "All"
 
 Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
 
-WantGoods = false
+ShippingInfo = []
 
 [[Ballots]]
 Credentials = { username = "another@account.com", password = "password" }
@@ -106,9 +116,7 @@ Codes = ["more", "and", "different", "codes"]
 
 Sessions = "Day.1"
 
-Renban = { name = "田中", address = "tanaka@tiger.com" }
+Renban = { name = "田中", address = "onitsuka@tiger.com" }
 
-WantGoods = false
+GoodsInfo = ["ＦＯＯ　ＢＡＲ", "+815050505050", "123-0123", "ＴＯＫＹＯ", "ＡＫＩＨＡＢＡＲＡ", "ＡＤＤＲＥＳＳ　１"，　"ＡＤＤＲＥＳＳ ２"]
 ```
-
-
