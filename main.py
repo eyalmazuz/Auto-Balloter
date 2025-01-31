@@ -283,7 +283,7 @@ def fill_goods_info(
         By.XPATH, "//div[@class='enq-info']//div[@class='cont-block']"
     )
     forms = body.find_elements(By.XPATH, "//fieldset")
-
+    with_goods = fill_goods_info is not None
     for idx, form in enumerate(forms):
         if idx == 0:
             # If with_goods is true we need to click the 0th button
@@ -384,7 +384,7 @@ def start_single_ballot_process(
                     ballot_info["Credentials"]["password"],
                 )
 
-                can_apply_with_goods = fill_ballot_info(driver, want_goods, pair)
+                can_apply_with_goods = fill_ballot_info(driver, shipping_info is not None, pair)
                 fill_payment_info(driver)
                 if pair:
                     fill_renban_info(driver, ballot_info["Renban"])
