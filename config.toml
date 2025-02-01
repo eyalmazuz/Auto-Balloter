@@ -18,6 +18,8 @@ Sessions = "All"
 # Sessions = "All"
 
 Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
+# If you don't want to ballot with a renban you can either comment the line
+# or put the value 0 or the value -1
 # If your renban list is A, B, C, ..., the value you should pick is:
 # A -> 1
 # B -> 2
@@ -29,7 +31,7 @@ Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
 # copy the "同行者名" without any spaces into the "name" field
 # and "メールアドレス" to the address key
 
-ShippingInfo = [] # If you don't want goods, keep it empty aka only the: []
+ShippingInfo = [] # If you don't want goods, keep it empty aka only the: [] or comment out the line completely
 # if you want goods you need to fill your information in a very specific order:
 # [Name, Phone, zip, Prefecture, City, Address 1, Address 2]
 # 1. Full Name in full-width characters

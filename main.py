@@ -1,4 +1,3 @@
-import time
 import tomllib
 from typing import Dict, List, Optional, Union
 import logging
@@ -7,10 +6,7 @@ from enum import Enum
 import unicodedata
 
 import undetected_chromedriver as uc
-from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
@@ -271,7 +267,7 @@ def has_goods_ballot(driver: WebDriver) -> bool:
             EC.visibility_of_element_located((By.XPATH, "//div[@class='enq-info']"))
         )
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -343,8 +339,9 @@ def start_single_ballot_process(
     elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
         sessions_to_apply_to = set([sessions_to_apply_to])
 
-    pair = "Renban" in ballot_info
+    pair = ("Renban" in ballot_info) or ("Renban" in ballot_info["Renan"] and ballot_info["Renan"] in [0, -1]) 
     shipping_info = ballot_info.get("ShippingInfo", None)
+    want_goods = (shipping_info == []) or (shipping_info is None)
 
     driver.get(entry_url)
     sessions = driver.find_elements(By.XPATH, "//div[@class='page-content']//a")
@@ -352,7 +349,7 @@ def start_single_ballot_process(
     # Slicing is a bit of bandaid solution since right now
     # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
 
-    attempted_code_status = {}
+    attempted_code_status: dict[str, list[str]] = {}
 
     while available_codes:
 
@@ -384,7 +381,7 @@ def start_single_ballot_process(
                     ballot_info["Credentials"]["password"],
                 )
 
-                can_apply_with_goods = fill_ballot_info(driver, shipping_info is not None, pair)
+                can_apply_with_goods = fill_ballot_info(driver, want_goods, pair)
                 fill_payment_info(driver)
                 if pair:
                     fill_renban_info(driver, ballot_info["Renban"])
