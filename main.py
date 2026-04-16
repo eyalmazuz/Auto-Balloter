@@ -52,20 +52,21 @@ def get_session_element(driver: WebDriver, session_name: str) -> WebElement:
 
 
 def apply_for_single_session(
-    driver: WebDriver, session_name: str, code: str, **ballot_info
+    driver: WebDriver, session_name: str, code: str, has_session_selection: bool, **ballot_info
 ) -> Status:
-    # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
-    session_button = get_session_element(driver, session_name)
-    logging.info(f"<Session> Applying to {session_name}")
-    session_button.click()
-    WebDriverWait(driver, 10).until(
-        EC.all_of(
-            EC.presence_of_element_located(
-                (By.XPATH, "//input[@type='text' and @placeholder='シリアルナンバー']")
-            ),
-            EC.element_to_be_clickable((By.XPATH, "//button[text()='お申込みへ']")),
+    if has_session_selection:
+        # TODO: generalize to sessions that aren't "Day.1/Day.2" or "昼公演/夜公演"
+        session_button = get_session_element(driver, session_name)
+        logging.info(f"<Session> Applying to {session_name}")
+        session_button.click()
+        WebDriverWait(driver, 10).until(
+            EC.all_of(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//input[@type='text' and @placeholder='シリアルナンバー']")
+                ),
+                EC.element_to_be_clickable((By.XPATH, "//button[text()='お申込みへ']")),
+            )
         )
-    )
     serial_code_box = driver.find_element(
         By.XPATH, "//input[@type='text' and @placeholder='シリアルナンバー']"
     )
@@ -82,7 +83,7 @@ def apply_for_single_session(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
-                    "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+                    "//button[text()='次へ' and @data-title='★ 必ずお読みください ★']",
                 )
             ),
             EC.presence_of_element_located(
@@ -114,7 +115,7 @@ def apply_for_single_session(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+                "//button[text()='次へ' and @data-title='★ 必ずお読みください ★']",
             )
         )
     )
@@ -131,7 +132,7 @@ def apply_for_single_session(
     # Clicking Apply on popup
     apply_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
-            (By.XPATH, "//button[text()='申込みへ' and @type='submit']")
+            (By.XPATH, "//button[text()='次へ' and @type='submit']")
         )
     )
     apply_button.click()
@@ -151,7 +152,7 @@ def login(driver: WebDriver, username: str, password: str) -> None:
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//input[@id='loginId' and @class='inputType01']",
+                "//input[@id='loginId' and @class='c-input']",
             )
         )
     )
@@ -161,7 +162,7 @@ def login(driver: WebDriver, username: str, password: str) -> None:
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//input[@id='loginPassword' and @class='inputType01 passwordInput']",
+                "//input[@id='loginPassword' and @class='c-input']",
             )
         )
     )
@@ -218,7 +219,7 @@ def fill_ballot_info(driver: WebDriver, with_goods: bool, is_pair: bool) -> bool
     """Fills in the options on the first page after you log in.
 
     Returns a boolean describing whether you can apply with goods or not."""
-    day_option = WebDriverWait(driver, 10).until(
+    day_option = WebDriverWait(driver, 30).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//tr/td[2]//select[option[text()='選択して下さい']]")
         )
@@ -334,8 +335,9 @@ def start_single_ballot_process(
 ) -> None:
     available_codes = ballot_info["Codes"]
     sessions_to_apply_to = ballot_info["Sessions"]
+
     if isinstance(sessions_to_apply_to, list):
-        sessions_to_apply_to = set(ballot_info["Sessions"])
+        sessions_to_apply_to = set(sessions_to_apply_to)
     elif isinstance(sessions_to_apply_to, str) and sessions_to_apply_to != "All":
         sessions_to_apply_to = set([sessions_to_apply_to])
 
@@ -348,6 +350,14 @@ def start_single_ballot_process(
     sessions_name = {session.text[1:-5] for session in sessions}
     # Slicing is a bit of bandaid solution since right now
     # All options are in the form of ＜xxx＞お申込み so the slice returns 'xxx'
+    has_session_selection = bool(sessions_name)
+
+    if not has_session_selection:
+        # No session selection page found — use configured sessions as identifiers
+        if isinstance(sessions_to_apply_to, set):
+            sessions_name = sessions_to_apply_to
+        else:
+            sessions_name = {sessions_to_apply_to}
 
     attempted_code_status: dict[str, list[str]] = {}
 
@@ -362,8 +372,7 @@ def start_single_ballot_process(
         for session_name in sessions_name:
             if sessions_to_apply_to == "All" or session_name in sessions_to_apply_to:
                 driver.get(entry_url)
-
-                ballot_status = apply_for_single_session(driver, session_name, code, **ballot_info)
+                ballot_status = apply_for_single_session(driver, session_name, code, has_session_selection, **ballot_info)
 
                 match ballot_status:
                     case Status.INVALID_CODE:
