@@ -16,9 +16,6 @@ Sessions = "All"
 # Sessions = ["昼公演"]
 # Sessions = ["昼公演", "夜公演"]
 # Sessions = "All"
-# Or you can specify if the balloter must skip the session selection
-# SkipSessionSelection = true
-# Sessions = "Day.2"
 
 Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
 # If you don't want to ballot with a renban you can either comment the line
