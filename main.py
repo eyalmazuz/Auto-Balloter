@@ -83,7 +83,7 @@ def apply_for_single_session(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
-                    "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+                    "//button[text()='次へ' and @data-title='★ 必ずお読みください ★']",
                 )
             ),
             EC.presence_of_element_located(
@@ -115,7 +115,7 @@ def apply_for_single_session(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//button[text()='申込む' and @data-title='★ 必ずお読みください ★']",
+                "//button[text()='次へ' and @data-title='★ 必ずお読みください ★']",
             )
         )
     )
@@ -132,7 +132,7 @@ def apply_for_single_session(
     # Clicking Apply on popup
     apply_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
-            (By.XPATH, "//button[text()='申込みへ' and @type='submit']")
+            (By.XPATH, "//button[text()='次へ' and @type='submit']")
         )
     )
     apply_button.click()
@@ -152,7 +152,7 @@ def login(driver: WebDriver, username: str, password: str) -> None:
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//input[@id='loginId' and @class='inputType01']",
+                "//input[@id='loginId' and @class='c-input']",
             )
         )
     )
@@ -162,7 +162,7 @@ def login(driver: WebDriver, username: str, password: str) -> None:
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//input[@id='loginPassword' and @class='inputType01 passwordInput']",
+                "//input[@id='loginPassword' and @class='c-input']",
             )
         )
     )
@@ -219,7 +219,7 @@ def fill_ballot_info(driver: WebDriver, with_goods: bool, is_pair: bool) -> bool
     """Fills in the options on the first page after you log in.
 
     Returns a boolean describing whether you can apply with goods or not."""
-    day_option = WebDriverWait(driver, 10).until(
+    day_option = WebDriverWait(driver, 30).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//tr/td[2]//select[option[text()='選択して下さい']]")
         )
