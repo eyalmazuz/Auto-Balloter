@@ -1,2 +1,5 @@
+certifi>=2024.0.0
+requests>=2.31.0
 selenium==4.41.0
+setuptools>=75.0.0
 undetected-chromedriver==3.5.5

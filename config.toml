@@ -1,35 +1,43 @@
 URL = "https://eplus.jp/aqours-finale-cd"
-# The entry page for the event you apply to
-# This is currently working only for love live serial events
+# The entry page for the event you apply to (e.g., https://eplus.jp/serial/<event_slug>/)
+
+MobileEmulation = true
+# Set to true to emulate a smartphone browser in main.py (for Sumachike receptions, prefer ios_balloter.py on macOS)
+
+MobileDevice = "Pixel 8"
+# Supported presets for main.py: "Pixel 8", "iPhone 15 Pro"
+
+DeliveryMethod = "sumachike"
+# Supported options: "sumachike" (selects スマチケ if a delivery radio button is shown), "default"
 
 [[Ballots]]
 Credentials = { username = "an@example.com", password = "NonakaCocona" }
-# The login info for your eplus account
+# The login info for your eplus account.
+# Tip: To avoid committing real credentials, leave placeholders here and set EPLUS_USERNAME / EPLUS_PASSWORD in your shell.
 
 Codes = ["aaa", "bbb"]
-# All the codes you want to apply for this specific account
+# All the serial codes you want to apply with for this specific account
 
 Sessions = "All"
-# You can specify a list or you can just write "All" if you want to apply for all sessions.
-# Supported options are: "昼公演", "夜公演", "Day.1", "Day.2", and "All"
+# You can specify a list of sessions/tour stops or "All".
 # Examples:
 # Sessions = ["昼公演"]
-# Sessions = ["昼公演", "夜公演"]
+# Sessions = ["福岡公演", "愛知公演"]
 # Sessions = "All"
 
-Renban = 1 # or { name = "ふううばる", address = "mail@address.com" }
-# If you don't want to ballot with a renban you can either comment the line
-# or put the value 0 or the value -1
+SeatKeyword = "一般指定席"
+# Substring to match the seat tier dropdown in ios_balloter.py (e.g., "一般指定席", "Ｓ席", "Ａ席")
+
+GoodsKeyword = "特製グッズ無し"
+# Substring to match the goods/no-goods quantity dropdown in ios_balloter.py (e.g., "特製グッズ無し", "特製グッズ付き")
+
+Quantity = 2
+# Number of tickets per application (1 or 2).
+# For Sumachike (スマチケ), set Quantity = 2 and Renban = 0 (you distribute tickets in the E+ app after winning).
+
+Renban = 0 # Set to 0 for Sumachike or solo applications; or set to 1, 2, ... / { name = "ふううばる", address = "mail@address.com" }
 # If your renban list is A, B, C, ..., the value you should pick is:
-# A -> 1
-# B -> 2
-# C -> 3
-# ...
-# You can also find this as the "No" of the person on
-# https://member.eplus.jp/update-dokosha
-# You can also specify the renban by his name and address as a mapping as seen above
-# copy the "同行者名" without any spaces into the "name" field
-# and "メールアドレス" to the address key
+# A -> 1, B -> 2, C -> 3, ... (find "No" on https://member.eplus.jp/update-dokosha)
 
 ShippingInfo = [] # If you don't want goods, keep it empty aka only the: [] or comment out the line completely
 # if you want goods you need to fill your information in a very specific order:
