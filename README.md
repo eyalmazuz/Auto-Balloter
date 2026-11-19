@@ -24,18 +24,53 @@ ARISING FROM ITS USE. NO GUARANTEE OF SUPPORT OR UPDATES IS PROVIDED.
 This code relies on chrome-based browsers to apply
 so before you run the code please install [google-chrome](https://www.google.com/chrome/) or [chromium](https://chromium.woolyss.com/download/)
 
-The code also relied heavily on Selenium and undetected-chromedriver
-Please run:
+The project uses [uv](https://docs.astral.sh/uv/) for dependency and environment management:
 
-```
-pip install -r requirements.txt
+```bash
+uv sync
 ```
 
 # How to run
-1. Set the config file as explain below
-2. Open powershell/termina/shell
-3. Run ``python3 main.py``
+1. Set the config file as explained below
+2. Verify mobile emulation fingerprint (optional dry check):
+   ```bash
+   uv run main.py --verify-mobile
+   ```
+3. Run the balloter:
+   ```bash
+   uv run main.py
+   ```
 4. Wait and enjoy
+
+## iOS Simulator Sumachike Automation (`ios_balloter.py`)
+For smartphone-only Sumachike (`スマチケ`) receptions gated by Akamai Bot Manager, use [ios_balloter.py](./ios_balloter.py), which drives genuine Mobile Safari inside a booted Xcode iOS Simulator via Appium XCUITest (native UI mode, so `navigator.webdriver` stays `false`):
+
+```bash
+# 1. Boot an iOS Simulator and start Appium (one-time: `npm install -g appium && appium driver install xcuitest`)
+xcrun simctl boot <UDID>
+appium --port 4723
+
+# 2. Run all configured ballots (auto-detects the booted iPhone Simulator)
+uv run ios_balloter.py
+
+# Or run specific code:session pairs
+uv run ios_balloter.py --pairs <SERIAL>:福岡公演
+
+# Agent / non-interactive first-time email OTP (メールアドレス認証) support:
+uv run ios_balloter.py --otp-file ~/.cache/auto-balloter/otp.txt
+# or fetch automatically via a trusted local command:
+uv run ios_balloter.py --otp-cmd "your-gmail-otp-helper"
+```
+
+### Credential Safety
+Because `config.toml` is tracked in git, either keep placeholder credentials in `config.toml` and pass your real login via environment variables (`EPLUS_USERNAME` / `EPLUS_PASSWORD`), or mark your local copy untracked with:
+
+```bash
+git update-index --skip-worktree config.toml
+```
+
+### Agent Skill
+This repository also includes a workspace Agent Skill at [`.agents/skills/eplus-sumachike-balloter/SKILL.md`](./.agents/skills/eplus-sumachike-balloter/SKILL.md) so AI coding agents (Antigravity, Claude Code, Codex, etc.) can automatically discover and run the iOS Simulator Sumachike workflow, including first-time email OTP verification via `--otp-file`.
 
 # Config file
 This scripts uses a [TOML](https://toml.io/en/) config format
